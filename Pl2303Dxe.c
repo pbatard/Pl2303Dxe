@@ -22,7 +22,7 @@ STATIC CONST PL2303_TYPE_DATA Pl2303TypeData[TYPE_COUNT] = {
   /* TYPE_TA  */ { "TA",  6000000, 0,                   FALSE, FALSE, TRUE  },
   /* TYPE_TB  */ { "TB", 12000000, 0,                   FALSE, FALSE, TRUE  },
   /* TYPE_HXD */ { "HXD",12000000, 0,                   FALSE, FALSE, FALSE },
-  /* TYPE_HXN */ { "G",  12000000, 0,                   FALSE, TRUE,  FALSE },
+  /* TYPE_HXN */ { "HXN", 12000000, 0,                   FALSE, TRUE,  FALSE },
 };
 
 /* =========================================================================
@@ -872,7 +872,7 @@ Pl2303EncodeBaudRateDivisorAlt (
 
   Buf[3] = 0x80;
   Buf[2] = (UINT8)(Exponent & 0x01);
-  Buf[1] = (UINT8)(((Exponent & ~0x01u) << 4) | (Mantissa >> 8));
+  Buf[1] = (UINT8)(((Exponent & 0x0Eu) << 4) | (Mantissa >> 8));
   Buf[0] = (UINT8)(Mantissa & 0xFF);
 
   return (Baseline / Mantissa) >> Exponent;
@@ -1524,7 +1524,7 @@ Pl2303DriverBindingSupported (
   )
 {
   EFI_STATUS           Status;
-  EFI_USB_IO_PROTOCOL *UsbIo;
+  EFI_USB_IO_PROTOCOL  *UsbIo;
   UINTN                Quirks;
 
   Status = gBS->OpenProtocol (
@@ -1627,7 +1627,7 @@ Pl2303DriverBindingStart (
   }
 
   DEBUG ((DEBUG_INFO, "PL2303: detected type %a, quirks 0x%lx\n",
-          Pl2303TypeData[Dev->Type].Name, (UINT64)Dev->Quirks));
+          Pl2303TypeData[Dev->Type].TypeName, (UINT64)Dev->Quirks));
 
   /* Discover bulk-in / bulk-out / interrupt-in endpoints */
   Status = Pl2303DiscoverEndpoints (Dev);

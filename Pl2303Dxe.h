@@ -104,7 +104,7 @@ typedef enum {
 
 /* Per-type capability flags */
 typedef struct {
-  CONST CHAR8  *Name;
+  CONST CHAR8  *TypeName;
   UINT32        MaxBaudRate;
   UINTN         Quirks;
   BOOLEAN       NoAutoXonXoff;
