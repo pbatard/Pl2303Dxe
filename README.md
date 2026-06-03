@@ -1,4 +1,4 @@
-Pl2303Dxe - UEFI driver for Prolific PL2303 based devices
+Pl2303Dxe - UEFI driver for PL2303 devices + SerialTest Application
 ===============================
 
 ## Description
@@ -20,6 +20,9 @@ The original sources (and original authors) for the Linux driver can be found at
 * https://github.com/torvalds/linux/blob/master/drivers/usb/serial/pl2303.h
 * https://github.com/torvalds/linux/blob/master/drivers/usb/serial/pl2303.c
 
+This repository also includes the EDK2 SerialTest application, from:
+* https://github.com/jljusten/edk2/tree/0b0002292ca2fb0a4e0fc3b6cc4dd44f67b9a33e/SerialTestPkg/Application/SerialTest
+
 ## Usage
 
 Create a bootable media with the UEFI Shell, such as the one you can download from
@@ -33,6 +36,7 @@ load Pl2303Dxe.efi
 ```
 
 You should then be able to use the serial interface from your UEFI applications or drivers.
+If needed, you can use the `SerialTest` application to test the serial device.
 
 ## Compilation
 
@@ -45,4 +49,5 @@ export WORKSPACE=$PWD
 export PACKAGES_PATH=$WORKSPACE:$WORKSPACE/edk2
 source edk2/edksetup.sh
 build -a X64 -b RELEASE -t GCC -p Pl2303Dxe.dsc -m Pl2303Dxe.inf
+build -a X64 -b RELEASE -t GCC -p Pl2303Dxe.dsc -m SerialTest.inf
 ```

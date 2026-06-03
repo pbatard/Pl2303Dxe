@@ -80,6 +80,7 @@ jobs:
         export PACKAGES_PATH=$WORKSPACE:$WORKSPACE/edk2
         source edk2/edksetup.sh
         build -a ${{ matrix.TARGET_ARCH }} -b ${{ env.BUILD_TYPE }} -t ${{ env.COMPILER }} -p Pl2303Dxe.dsc -m Pl2303Dxe.inf
+        build -a ${{ matrix.TARGET_ARCH }} -b ${{ env.BUILD_TYPE }} -t ${{ env.COMPILER }} -p Pl2303Dxe.dsc -m SerialTest.inf
         mv Build/${{ env.BUILD_TYPE }}_${{ env.COMPILER }}/${{ matrix.TARGET_ARCH }}/*.efi .
 
     - name: Upload artifacts

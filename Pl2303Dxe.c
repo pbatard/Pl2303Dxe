@@ -1648,7 +1648,7 @@ Pl2303DriverBindingStart (
   /* Set default mode values */
   Dev->Mode.ControlMask      = 0;
   Dev->Mode.Timeout          = 1000000;  /* 1 second in microseconds */
-  Dev->Mode.BaudRate         = 9600;
+  Dev->Mode.BaudRate         = 115200;
   Dev->Mode.ReceiveFifoDepth = 16;
   Dev->Mode.DataBits         = 8;
   Dev->Mode.Parity           = NoParity;
@@ -1670,7 +1670,7 @@ Pl2303DriverBindingStart (
     Pl2303VendorWrite (UsbIo, FALSE, 9, 0);
   }
 
-  /* Program 9600 8N1 as the initial line coding */
+  /* Program 115200 8N1 as the initial line coding */
   Status = Pl2303SerialSetAttributes (
              &Dev->SerialIo,
              Dev->Mode.BaudRate,
