@@ -1,0 +1,92 @@
+name: Linux (gcc with EDK2)
+
+on:
+  workflow_dispatch:
+    branches: [main]
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+    tags:
+      - '**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+
+env:
+  BUILD_TYPE: RELEASE
+  COMPILER: GCC
+  GCC_ARM_PREFIX: arm-linux-gnueabi-
+  GCC_AARCH64_PREFIX: aarch64-linux-gnu-
+  GCC_RISCV64_PREFIX: riscv64-linux-gnu-
+  GCC_LOONGARCH64_PREFIX: loongarch64-unknown-linux-gnu-
+  EDK2_STABLE_TAG: edk2-stable202508.01
+  LOONGARCH64_TOOLCHAIN_TAG: 2025.08.08
+  LOONGARCH64_TOOLCHAIN_NAME: x86_64-cross-tools-loongarch64-binutils_2.45-gcc_15.1.0-glibc_2.42.tar.xz
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        TARGET_TYPE: [ia32, x64, aa64, arm, riscv64, loongarch64]
+        include:
+        - TARGET_TYPE: x64
+          TARGET_ARCH: X64
+          TARGET_PKGS: nasm gcc-multilib
+        - TARGET_TYPE: ia32
+          TARGET_ARCH: IA32
+          TARGET_PKGS: nasm gcc-multilib
+        - TARGET_TYPE: aa64
+          TARGET_ARCH: AARCH64
+          TARGET_PKGS: gcc-aarch64-linux-gnu
+        - TARGET_TYPE: arm
+          TARGET_ARCH: ARM
+          TARGET_PKGS: gcc-arm-linux-gnueabi
+        - TARGET_TYPE: riscv64
+          TARGET_ARCH: RISCV64
+          TARGET_PKGS: gcc-riscv64-linux-gnu
+        - TARGET_TYPE: loongarch64
+          TARGET_ARCH: LOONGARCH64
+          TARGET_PKGS: gcc-multilib
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Set up Linux environment
+      run: |
+        sudo apt-get update
+        sudo apt-get -y --no-install-recommends install python3-setuptools uuid-dev ${{ matrix.TARGET_PKGS }}
+        if [[ "${{ matrix.TARGET_ARCH }}" == "LOONGARCH64" ]]; then
+          curl -L -O https://github.com/loongson/build-tools/releases/download/${LOONGARCH64_TOOLCHAIN_TAG}/${LOONGARCH64_TOOLCHAIN_NAME}
+          tar -xJf ${LOONGARCH64_TOOLCHAIN_NAME}
+          echo "$PWD/cross-tools/bin" >> "$GITHUB_PATH"
+        fi
+
+    - name: Set up EDK2
+      run: |
+        git clone --branch ${EDK2_STABLE_TAG} --recursive https://github.com/tianocore/edk2.git
+        make -C edk2/BaseTools
+
+    - name: Build UEFI binaries
+      run: |
+        export WORKSPACE=$PWD
+        export PACKAGES_PATH=$WORKSPACE:$WORKSPACE/edk2
+        source edk2/edksetup.sh
+        build -a ${{ matrix.TARGET_ARCH }} -b ${{ env.BUILD_TYPE }} -t ${{ env.COMPILER }} -p Pl2303Dxe.dsc -m Pl2303Dxe.inf
+        mv Build/${{ env.BUILD_TYPE }}_${{ env.COMPILER }}/${{ matrix.TARGET_ARCH }}/*.efi .
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.TARGET_TYPE }}
+        path: ./*.efi
+
+    - name: Display SHA-256
+      run: sha256sum ./*.efi
