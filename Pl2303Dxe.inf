@@ -1,0 +1,40 @@
+## @file
+#  UEFI DXE driver for Prolific PL2303 USB to serial adapter.
+#
+#  Converts USB CDC serial data (PL2303-family chips) into an
+#  EFI_SERIAL_IO_PROTOCOL instance consumable by the UEFI environment.
+#
+#  Based on the Linux pl2303 driver:
+#    Copyright (C) 2001-2007 Greg Kroah-Hartman (greg@kroah.com)
+#    Copyright (C) 2003 IBM Corp.
+##
+
+# SPDX-License-Identifier: GPL-2.0+
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Pl2303Dxe
+  FILE_GUID                      = E2775E67-3A5D-4A74-A55D-372DCCF3EB9B
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Pl2303DxeEntryPoint
+
+[Sources]
+  Pl2303Dxe.h
+  Pl2303Dxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  MemoryAllocationLib
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+
+[Protocols]
+  gEfiDriverBindingProtocolGuid   ## PRODUCES
+  gEfiSerialIoProtocolGuid        ## PRODUCES
+  gEfiUsbIoProtocolGuid           ## CONSUMES
