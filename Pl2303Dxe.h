@@ -16,6 +16,7 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
+#include <Protocol/DriverBinding.h>
 #include <Protocol/UsbIo.h>
 #include <Protocol/SerialIo.h>
 #include <IndustryStandard/Usb.h>
