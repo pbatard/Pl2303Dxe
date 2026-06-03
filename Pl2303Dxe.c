@@ -872,7 +872,7 @@ Pl2303EncodeBaudRateDivisorAlt (
 
   Buf[3] = 0x80;
   Buf[2] = (UINT8)(Exponent & 0x01);
-  Buf[1] = (UINT8)(((Exponent & 0x0Eu) << 4) | (Mantissa >> 8));
+  Buf[1] = (UINT8)(((Exponent & 0x0E) << 4) | (Mantissa >> 8));
   Buf[0] = (UINT8)(Mantissa & 0xFF);
 
   return (Baseline / Mantissa) >> Exponent;
@@ -1295,27 +1295,27 @@ Pl2303SerialGetControl (
                                   1,          /* 1 ms timeout */
                                   &UsbStatus
                                   ))) {
-      UINTN Idx = ((Dev->Quirks & PL2303_QUIRK_UART_STATE_IDX0) != 0)
-                  ? 0 : UART_STATE_INDEX;
-      if (Len > Idx) {
-        Dev->LineStatus = StatusBuf[Idx];
+      UINTN StatusIndex = ((Dev->Quirks & PL2303_QUIRK_UART_STATE_IDX0) != 0)
+                          ? 0 : UART_STATE_INDEX;
+      if (Len > StatusIndex) {
+        Dev->LineStatus = StatusBuf[StatusIndex];
       }
     }
   }
 
   /* Also try a non-blocking bulk-IN poll to keep the rx buffer topped up */
   if (Dev->BulkInAddr != 0) {
-    UINT8  Tmp[PL2303_MAX_XFER_SIZE];
-    Len = sizeof (Tmp);
+    UINT8  BulkInBuffer[PL2303_MAX_XFER_SIZE];
+    Len = sizeof (BulkInBuffer);
     if (!EFI_ERROR (Dev->UsbIo->UsbBulkTransfer (
                                   Dev->UsbIo,
                                   Dev->BulkInAddr,
-                                  Tmp,
+                                  BulkInBuffer,
                                   &Len,
                                   1,      /* 1 ms */
                                   &UsbStatus
                                   )) && (Len > 0)) {
-      RxEnqueue (Dev, Tmp, Len);
+      RxEnqueue (Dev, BulkInBuffer, Len);
     }
   }
 

@@ -20,7 +20,8 @@
 #include <Protocol/SerialIo.h>
 #include <IndustryStandard/Usb.h>
 
-/* Vendor / product IDs – re-use the definitions from the Linux header. */
+/* Vendor / product IDs – re-use the definitions from the Linux driver header
+ * (pl2303.h is part of the original Linux kernel source included in this repo). */
 #include "pl2303.h"
 
 /* -----------------------------------------------------------------------
