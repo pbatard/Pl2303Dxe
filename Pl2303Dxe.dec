@@ -1,0 +1,12 @@
+## @file
+# Pl2303 Driver Package Implementation
+#
+# SPDX-License-Identifier: GPL-2.0+
+#
+##
+
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = Pl2303DxePkg
+  PACKAGE_GUID                   = 30C98449-1B01-4EB9-B907-E87EADB3A2BD
+  PACKAGE_VERSION                = 1.0

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Prolific PL2303 USB to serial adaptor driver header file
+ * Prolific PL2303 USB to serial adaptor driver hardware definitions
  */
 
 #define BENQ_VENDOR_ID			0x04a5
