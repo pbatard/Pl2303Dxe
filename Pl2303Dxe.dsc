@@ -33,12 +33,17 @@
   #
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
+!if $(TARGET) == DEBUG
+  DebugLib|MdePkg/Library/UefiDebugLibStdErr/UefiDebugLibStdErr.inf
+!else
   DebugLib|MdePkg/Library/BaseDebugLibNull/BaseDebugLibNull.inf
+!endif
+  DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
   FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
   MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
-  PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
+  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
   PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
   UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
   UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
@@ -55,3 +60,15 @@
 [Components]
   Pl2303Dxe.inf
   SerialTest.inf
+
+[PcdsFixedAtBuild]
+  # DEBUG_PROPERTY_DEBUG_ASSERT_ENABLED         0x01
+  # DEBUG_PROPERTY_DEBUG_PRINT_ENABLED          0x02
+  # DEBUG_PROPERTY_DEBUG_CODE_ENABLED           0x04
+  # DEBUG_PROPERTY_ASSERT_BREAKPOINT_ENABLED    0x10
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x17
+  # DEBUG_WARN                                     0x00000002
+  # DEBUG_INFO                                     0x00000040
+  # DEBUG_VERBOSE                                  0x00400000
+  # DEBUG_ERROR                                    0x80000000
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80400042

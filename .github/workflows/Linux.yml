@@ -31,6 +31,7 @@ jobs:
 
     strategy:
       matrix:
+        BUILD_TYPE: [DEBUG, RELEASE]
         TARGET_TYPE: [ia32, x64, aa64, arm, riscv64, loongarch64]
         include:
         - TARGET_TYPE: x64
@@ -86,7 +87,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v7
       with:
-        name: ${{ matrix.TARGET_TYPE }}
+        name: ${{ matrix.TARGET_TYPE }}_${{ matrix.BUILD_TYPE }}
         path: ./*.efi
 
     - name: Display SHA-256

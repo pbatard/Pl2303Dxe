@@ -104,10 +104,10 @@ UefiMain (
                );
 
     if (!EFI_ERROR(Status)) {
-      Print (L"\t%d. %s\n", (i + 1), DeviceName);
+      Print (L"%d. %s\n", (i + 1), DeviceName);
       FreePool (DeviceName);
     } else {
-      Print (L"\t%d. <Name Unknown>\n", (i + 1));
+      Print (L"%d. <Name Unknown>\n", (i + 1));
     }
   }
 
