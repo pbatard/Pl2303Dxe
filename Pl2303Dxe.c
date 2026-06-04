@@ -453,7 +453,7 @@ Pl2303IsHxdClone (
   EFI_USB_DEVICE_REQUEST  Req;
   UINT32                  UsbStatus;
   EFI_STATUS              Status;
-  UINT32                  BufAligned[2];  /* UINT32 ensures ≥4-byte alignment for DMA */
+  UINT32                  BufAligned[(7 + sizeof (UINT32) - 1) / sizeof (UINT32)];  /* UINT32 ensures ≥4-byte alignment for DMA */
   UINT8                  *Buf = (UINT8 *)BufAligned;
 
   Req.RequestType = GET_LINE_REQUEST_TYPE;
@@ -1075,7 +1075,7 @@ Pl2303SerialSetAttributes (
   )
 {
   PL2303_PRIVATE_DATA  *Dev;
-  UINT32                BufAligned[2];  /* UINT32 ensures ≥4-byte alignment for DMA */
+  UINT32                BufAligned[(7 + sizeof (UINT32) - 1) / sizeof (UINT32)];  /* UINT32 ensures ≥4-byte alignment for DMA */
   UINT8                *Buf = (UINT8 *)BufAligned;
   UINT32                ActualBaud;
   EFI_STATUS            Status;
@@ -1281,7 +1281,7 @@ Pl2303SerialGetControl (
 {
   PL2303_PRIVATE_DATA  *Dev;
   UINT32                Result;
-  UINT32                StatusBufAligned[3];  /* UINT32 ensures ≥4-byte alignment for DMA */
+  UINT32                StatusBufAligned[(10 + sizeof (UINT32) - 1) / sizeof (UINT32)];  /* UINT32 ensures ≥4-byte alignment for DMA */
   UINT8                *StatusBuf = (UINT8 *)StatusBufAligned;
   UINTN                 Len;
   UINT32                UsbStatus;
