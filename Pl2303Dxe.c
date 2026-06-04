@@ -286,20 +286,21 @@ Pl2303UpdateReg (
   )
 {
   EFI_STATUS  Status;
-  UINT8       Buf;
+  UINT32      BufAligned;           /* UINT32 ensures ≥4-byte alignment for DMA */
+  UINT8      *Buf = (UINT8 *)&BufAligned;
   BOOLEAN     IsHxn;
   UINT16      ReadAddr;
 
   IsHxn    = (BOOLEAN)(Dev->Type == TYPE_HXN);
   ReadAddr = IsHxn ? (UINT16)Reg : (UINT16)(Reg | 0x80);
 
-  Status = Pl2303VendorRead (Dev->UsbIo, IsHxn, ReadAddr, &Buf);
+  Status = Pl2303VendorRead (Dev->UsbIo, IsHxn, ReadAddr, Buf);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Buf = (UINT8)((Buf & ~Mask) | (Val & Mask));
-  return Pl2303VendorWrite (Dev->UsbIo, IsHxn, Reg, Buf);
+  *Buf = (*Buf & ~Mask) | (Val & Mask);
+  return Pl2303VendorWrite (Dev->UsbIo, IsHxn, Reg, *Buf);
 }
 
 /* =========================================================================
@@ -324,7 +325,7 @@ Pl2303SupportsHxStatus (
   EFI_USB_DEVICE_REQUEST  Req;
   UINT32                  UsbStatus;
   EFI_STATUS              Status;
-  UINT8                   Buf;
+  UINT32                  Buf;   /* UINT32 ensures ≥4-byte alignment for DMA */
 
   Req.RequestType = VENDOR_READ_REQUEST_TYPE;
   Req.Request     = VENDOR_READ_REQUEST;
@@ -337,7 +338,7 @@ Pl2303SupportsHxStatus (
                     &Req,
                     EfiUsbDataIn,
                     100,
-                    &Buf,
+                    (UINT8 *)&Buf,
                     1,
                     &UsbStatus
                     );
@@ -452,7 +453,8 @@ Pl2303IsHxdClone (
   EFI_USB_DEVICE_REQUEST  Req;
   UINT32                  UsbStatus;
   EFI_STATUS              Status;
-  UINT8                   Buf[7];
+  UINT32                  BufAligned[2];  /* UINT32 ensures ≥4-byte alignment for DMA */
+  UINT8                  *Buf = (UINT8 *)BufAligned;
 
   Req.RequestType = GET_LINE_REQUEST_TYPE;
   Req.Request     = GET_LINE_REQUEST;
@@ -556,7 +558,7 @@ Pl2303Startup (
   )
 {
   EFI_STATUS  Status;
-  UINT8       Buf;
+  UINT32      Buf;   /* UINT32 ensures ≥4-byte alignment for DMA */
   BOOLEAN     IsHxn;
   BOOLEAN     IsLegacy;
 
@@ -568,21 +570,21 @@ Pl2303Startup (
     return EFI_SUCCESS;
   }
 
-  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8484, &Buf);
+  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8484, (UINT8 *)&Buf);
   if (EFI_ERROR (Status)) { return Status; }
   Status = Pl2303VendorWrite (Dev->UsbIo, FALSE, 0x0404, 0);
   if (EFI_ERROR (Status)) { return Status; }
-  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8484, &Buf);
+  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8484, (UINT8 *)&Buf);
   if (EFI_ERROR (Status)) { return Status; }
-  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8383, &Buf);
+  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8383, (UINT8 *)&Buf);
   if (EFI_ERROR (Status)) { return Status; }
-  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8484, &Buf);
+  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8484, (UINT8 *)&Buf);
   if (EFI_ERROR (Status)) { return Status; }
   Status = Pl2303VendorWrite (Dev->UsbIo, FALSE, 0x0404, 1);
   if (EFI_ERROR (Status)) { return Status; }
-  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8484, &Buf);
+  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8484, (UINT8 *)&Buf);
   if (EFI_ERROR (Status)) { return Status; }
-  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8383, &Buf);
+  Status = Pl2303VendorRead  (Dev->UsbIo, FALSE, 0x8383, (UINT8 *)&Buf);
   if (EFI_ERROR (Status)) { return Status; }
   Status = Pl2303VendorWrite (Dev->UsbIo, FALSE, 0, 1);
   if (EFI_ERROR (Status)) { return Status; }
@@ -1073,7 +1075,8 @@ Pl2303SerialSetAttributes (
   )
 {
   PL2303_PRIVATE_DATA  *Dev;
-  UINT8                 Buf[7];
+  UINT32                BufAligned[2];  /* UINT32 ensures ≥4-byte alignment for DMA */
+  UINT8                *Buf = (UINT8 *)BufAligned;
   UINT32                ActualBaud;
   EFI_STATUS            Status;
 
@@ -1278,7 +1281,8 @@ Pl2303SerialGetControl (
 {
   PL2303_PRIVATE_DATA  *Dev;
   UINT32                Result;
-  UINT8                 StatusBuf[10];
+  UINT32                StatusBufAligned[3];  /* UINT32 ensures ≥4-byte alignment for DMA */
+  UINT8                *StatusBuf = (UINT8 *)StatusBufAligned;
   UINTN                 Len;
   UINT32                UsbStatus;
 
@@ -1286,7 +1290,7 @@ Pl2303SerialGetControl (
 
   /* Attempt a non-blocking synchronous interrupt poll to update line status */
   if (Dev->IntInAddr != 0) {
-    Len = sizeof (StatusBuf);
+    Len = sizeof (StatusBufAligned);
     if (!EFI_ERROR (Dev->UsbIo->UsbSyncInterruptTransfer (
                                   Dev->UsbIo,
                                   Dev->IntInAddr,
