@@ -17,11 +17,11 @@
  * ========================================================================= */
 
 STATIC CONST PL2303_TYPE_DATA Pl2303TypeData[TYPE_COUNT] = {
-  /* TYPE_H   */ { "H",   1228800, PL2303_QUIRK_LEGACY, TRUE,  FALSE, FALSE },
-  /* TYPE_HX  */ { "HX",  6000000, 0,                   FALSE, FALSE, FALSE },
-  /* TYPE_TA  */ { "TA",  6000000, 0,                   FALSE, FALSE, TRUE  },
-  /* TYPE_TB  */ { "TB", 12000000, 0,                   FALSE, FALSE, TRUE  },
-  /* TYPE_HXD */ { "HXD",12000000, 0,                   FALSE, FALSE, FALSE },
+  /* TYPE_H   */ { "H",    1228800, PL2303_QUIRK_LEGACY, TRUE,  FALSE, FALSE },
+  /* TYPE_HX  */ { "HX",   6000000, 0,                   FALSE, FALSE, FALSE },
+  /* TYPE_TA  */ { "TA",   6000000, 0,                   FALSE, FALSE, TRUE  },
+  /* TYPE_TB  */ { "TB",  12000000, 0,                   FALSE, FALSE, TRUE  },
+  /* TYPE_HXD */ { "HXD", 12000000, 0,                   FALSE, FALSE, FALSE },
   /* TYPE_HXN */ { "HXN", 12000000, 0,                   FALSE, TRUE,  FALSE },
 };
 
@@ -203,12 +203,12 @@ Pl2303VendorRead (
                     EfiUsbDataIn,
                     100,
                     Buf,
-                    1,
+                    Req.Length,
                     &UsbStatus
                     );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
     DEBUG ((DEBUG_ERROR,
-            "Pl2303VendorRead [%04x] failed: %r (USB status 0x%x)\n",
+            "Pl2303: VendorRead [%04x] failed: %r (USB status 0x%x)\n",
             Value, Status, UsbStatus));
     return EFI_DEVICE_ERROR;
   }
@@ -252,12 +252,12 @@ Pl2303VendorWrite (
                     EfiUsbNoData,
                     100,
                     NULL,
-                    0,
+                    Req.Length,
                     &UsbStatus
                     );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
     DEBUG ((DEBUG_ERROR,
-            "Pl2303VendorWrite [%04x]=%04x failed: %r (USB status 0x%x)\n",
+            "Pl2303: VendorWrite [%04x]=%04x failed: %r (USB status 0x%x)\n",
             Value, Index, Status, UsbStatus));
     return EFI_DEVICE_ERROR;
   }
@@ -338,7 +338,7 @@ Pl2303SupportsHxStatus (
                     EfiUsbDataIn,
                     100,
                     &Buf,
-                    1,
+                    Req.Length,
                     &UsbStatus
                     );
   return (!EFI_ERROR (Status) && (UsbStatus == 0));
@@ -430,7 +430,7 @@ Pl2303DetectType (
     break;
   }
 
-  DEBUG ((DEBUG_WARN, "PL2303: unknown device type (bcdUSB=%04x bcdDevice=%04x)\n",
+  DEBUG ((DEBUG_WARN, "PL2303: Unknown device type (bcdUSB=%04x bcdDevice=%04x)\n",
           BcdUsb, BcdDevice));
   return -1;
 }
@@ -466,7 +466,7 @@ Pl2303IsHxdClone (
                     EfiUsbDataIn,
                     100,
                     Buf,
-                    7,
+                    Req.Length,
                     &UsbStatus
                     );
   /* A clone returns a STALL / error instead of valid data. */
@@ -530,7 +530,7 @@ Pl2303DiscoverEndpoints (
   }
 
   if ((Dev->BulkInAddr == 0) || (Dev->BulkOutAddr == 0)) {
-    DEBUG ((DEBUG_ERROR, "PL2303: bulk endpoints not found\n"));
+    DEBUG ((DEBUG_ERROR, "PL2303: Bulk endpoints not found\n"));
     return EFI_NOT_FOUND;
   }
 
@@ -630,7 +630,7 @@ Pl2303SetControlLines (
                          EfiUsbNoData,
                          100,
                          NULL,
-                         0,
+                         Req.Length,
                          &UsbStatus
                          );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
@@ -679,7 +679,7 @@ Pl2303GetLineRequest (
                          EfiUsbDataIn,
                          100,
                          Buf,
-                         7,
+                         Req.Length,
                          &UsbStatus
                          );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
@@ -721,7 +721,7 @@ Pl2303SetLineRequest (
                          EfiUsbDataOut,
                          100,
                          Buf,
-                         7,
+                         Req.Length,
                          &UsbStatus
                          );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
@@ -1278,46 +1278,8 @@ Pl2303SerialGetControl (
 {
   PL2303_PRIVATE_DATA  *Dev;
   UINT32                Result;
-  UINT8                 StatusBuf[10];
-  UINTN                 Len;
-  UINT32                UsbStatus;
 
   Dev = PL2303_FROM_SERIAL_IO (This);
-
-  /* Attempt a non-blocking synchronous interrupt poll to update line status */
-  if (Dev->IntInAddr != 0) {
-    Len = sizeof (StatusBuf);
-    if (!EFI_ERROR (Dev->UsbIo->UsbSyncInterruptTransfer (
-                                  Dev->UsbIo,
-                                  Dev->IntInAddr,
-                                  StatusBuf,
-                                  &Len,
-                                  1,          /* 1 ms timeout */
-                                  &UsbStatus
-                                  ))) {
-      UINTN StatusIndex = ((Dev->Quirks & PL2303_QUIRK_UART_STATE_IDX0) != 0)
-                          ? 0 : UART_STATE_INDEX;
-      if (Len > StatusIndex) {
-        Dev->LineStatus = StatusBuf[StatusIndex];
-      }
-    }
-  }
-
-  /* Also try a non-blocking bulk-IN poll to keep the rx buffer topped up */
-  if (Dev->BulkInAddr != 0) {
-    UINT8  BulkInBuffer[PL2303_MAX_XFER_SIZE];
-    Len = sizeof (BulkInBuffer);
-    if (!EFI_ERROR (Dev->UsbIo->UsbBulkTransfer (
-                                  Dev->UsbIo,
-                                  Dev->BulkInAddr,
-                                  BulkInBuffer,
-                                  &Len,
-                                  1,      /* 1 ms */
-                                  &UsbStatus
-                                  )) && (Len > 0)) {
-      RxEnqueue (Dev, BulkInBuffer, Len);
-    }
-  }
 
   Result = 0;
 
@@ -1605,7 +1567,7 @@ Pl2303DriverBindingStart (
   /* Detect chip type */
   Type = Pl2303DetectType (UsbIo);
   if (Type < 0) {
-    DEBUG ((DEBUG_ERROR, "PL2303: failed to detect chip type\n"));
+    DEBUG ((DEBUG_ERROR, "PL2303: Failed to detect chip type\n"));
     Status = EFI_DEVICE_ERROR;
     goto CloseUsbIo;
   }
@@ -1626,7 +1588,7 @@ Pl2303DriverBindingStart (
     Dev->Quirks |= PL2303_QUIRK_NO_BREAK_GETLINE;
   }
 
-  DEBUG ((DEBUG_INFO, "PL2303: detected type %a, quirks 0x%lx\n",
+  DEBUG ((DEBUG_INFO, "PL2303: Detected type %a, quirks 0x%lx\n",
           Pl2303TypeData[Dev->Type].TypeName, (UINT64)Dev->Quirks));
 
   /* Discover bulk-in / bulk-out / interrupt-in endpoints */
