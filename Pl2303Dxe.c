@@ -114,13 +114,127 @@ STATIC CONST PL2303_USB_DEVICE mPl2303DeviceList[] = {
  * Global driver-binding instance
  * ========================================================================= */
 
-EFI_DRIVER_BINDING_PROTOCOL gPl2303DriverBinding = {
+EFI_DRIVER_BINDING_PROTOCOL Pl2303DriverBinding = {
   Pl2303DriverBindingSupported,
   Pl2303DriverBindingStart,
   Pl2303DriverBindingStop,
   0x10,
   NULL,
   NULL
+};
+
+/* =========================================================================
+ * Component Name
+ * ========================================================================= */
+
+STATIC CHAR16* Pl2303DriverName = L"PL2303 USB Serial Driver";
+
+EFI_STATUS
+EFIAPI
+Pl2303GetDriverName (
+  IN  EFI_COMPONENT_NAME_PROTOCOL  *This,
+  IN  CHAR8                        *Language,
+  OUT CHAR16                      **DriverName
+  )
+{
+  *DriverName = Pl2303DriverName;
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+Pl2303GetDriverName2 (
+  IN  EFI_COMPONENT_NAME2_PROTOCOL  *This,
+  IN  CHAR8                         *Language,
+  OUT CHAR16                       **DriverName
+  )
+{
+  *DriverName = Pl2303DriverName;
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+Pl2303GetControllerName (
+  IN  EFI_COMPONENT_NAME_PROTOCOL  *This,
+  IN  EFI_HANDLE                    ControllerHandle,
+  IN  EFI_HANDLE                    ChildHandle      OPTIONAL,
+  IN  CHAR8                        *Language,
+  OUT CHAR16                      **ControllerName
+  )
+{
+  EFI_STATUS              Status;
+  EFI_SERIAL_IO_PROTOCOL  *SerialIo;
+  EFI_USB_IO_PROTOCOL     *UsbIoProtocol;
+
+  if (ChildHandle != NULL) {
+    return EFI_UNSUPPORTED;
+  }
+
+  /* Check Controller's handle */
+  Status = gBS->OpenProtocol (
+                  ControllerHandle,
+                  &gEfiUsbIoProtocolGuid,
+                  (VOID **) &UsbIoProtocol,
+                  Pl2303DriverBinding.DriverBindingHandle,
+                  ControllerHandle,
+                  EFI_OPEN_PROTOCOL_BY_DRIVER
+                  );
+  if (!EFI_ERROR (Status)) {
+    gBS->CloseProtocol (
+           ControllerHandle,
+           &gEfiUsbIoProtocolGuid,
+           Pl2303DriverBinding.DriverBindingHandle,
+           ControllerHandle
+           );
+
+    return EFI_UNSUPPORTED;
+  }
+
+  if (Status != EFI_ALREADY_STARTED) {
+    return EFI_UNSUPPORTED;
+  }
+
+  /* Get the device context */
+  Status = gBS->OpenProtocol (
+                  ControllerHandle,
+                  &gEfiSerialIoProtocolGuid,
+                  (VOID **) &SerialIo,
+                  Pl2303DriverBinding.DriverBindingHandle,
+                  ControllerHandle,
+                  EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                  );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  *ControllerName = (PL2303_FROM_SERIAL_IO (SerialIo))->Name;
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+Pl2303GetControllerName2 (
+  IN  EFI_COMPONENT_NAME2_PROTOCOL  *This,
+  IN  EFI_HANDLE                     ControllerHandle,
+  IN  EFI_HANDLE                     ChildHandle      OPTIONAL,
+  IN  CHAR8                         *Language,
+  OUT CHAR16                       **ControllerName
+  )
+{
+  return Pl2303GetControllerName (NULL, ControllerHandle, ChildHandle, Language, ControllerName);
+}
+
+EFI_COMPONENT_NAME_PROTOCOL Pl2303ComponentName = {
+  .GetDriverName = Pl2303GetDriverName,
+  .GetControllerName = Pl2303GetControllerName,
+  .SupportedLanguages = (CHAR8*)"eng"
+};
+
+EFI_COMPONENT_NAME2_PROTOCOL Pl2303ComponentName2 = {
+  .GetDriverName = Pl2303GetDriverName2,
+  .GetControllerName = Pl2303GetControllerName2,
+  .SupportedLanguages = (CHAR8*)"en"
 };
 
 /* =========================================================================
@@ -201,7 +315,7 @@ Pl2303VendorRead (
                     UsbIo,
                     &Req,
                     EfiUsbDataIn,
-                    100,
+                    200,
                     Buf,
                     Req.Length,
                     &UsbStatus
@@ -250,7 +364,7 @@ Pl2303VendorWrite (
                     UsbIo,
                     &Req,
                     EfiUsbNoData,
-                    100,
+                    200,
                     NULL,
                     Req.Length,
                     &UsbStatus
@@ -1539,11 +1653,14 @@ Pl2303DriverBindingStart (
   IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath
   )
 {
-  EFI_STATUS            Status;
-  EFI_USB_IO_PROTOCOL  *UsbIo;
-  PL2303_PRIVATE_DATA  *Dev;
-  UINTN                 Quirks;
-  INT32                 Type;
+  EFI_USB_DEVICE_DESCRIPTOR  Desc;
+  EFI_STATUS                 Status;
+  EFI_USB_IO_PROTOCOL       *UsbIo;
+  PL2303_PRIVATE_DATA       *Dev;
+  UINTN                      Quirks;
+  UINTN                      Size;
+  INT32                      Type;
+  CHAR16                    *ProductString = NULL;
 
   /* Open USB I/O */
   Status = gBS->OpenProtocol (
@@ -1586,6 +1703,22 @@ Pl2303DriverBindingStart (
 
   if ((Dev->Type == TYPE_HXD) && Pl2303IsHxdClone (UsbIo)) {
     Dev->Quirks |= PL2303_QUIRK_NO_BREAK_GETLINE;
+  }
+
+  /* Populate the device name */
+  if (UsbIo->UsbGetDeviceDescriptor (UsbIo, &Desc) == EFI_SUCCESS && Desc.StrProduct != 0) {
+    UsbIo->UsbGetStringDescriptor (UsbIo, 0x0409, Desc.StrProduct, &ProductString);
+    Size = 64 + ((ProductString != NULL) ? 2 * StrLen(ProductString) : 0);
+    Dev->Name = AllocateZeroPool(Size);
+    if (Dev->Name != NULL) {
+      UnicodeSPrint(Dev->Name, Size, L"PL2303%a %s (%04x:%04x)",
+        Pl2303TypeData[Dev->Type].TypeName,
+        (ProductString != NULL) ? ProductString : L"",
+        Desc.IdVendor,
+        Desc.IdProduct
+        );
+    }
+    FreePool(ProductString);
   }
 
   DEBUG ((DEBUG_INFO, "PL2303: Detected type %a, quirks 0x%lx\n",
@@ -1731,6 +1864,7 @@ Pl2303DriverBindingStop (
          ControllerHandle
          );
 
+  FreePool (Dev->Name);
   FreePool (Dev);
   return EFI_SUCCESS;
 }
@@ -1755,13 +1889,17 @@ Pl2303DxeEntryPoint (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  gPl2303DriverBinding.DriverBindingHandle = ImageHandle;
-  gPl2303DriverBinding.ImageHandle         = ImageHandle;
+  Pl2303DriverBinding.DriverBindingHandle = ImageHandle;
+  Pl2303DriverBinding.ImageHandle         = ImageHandle;
 
   return gBS->InstallMultipleProtocolInterfaces (
-                &gPl2303DriverBinding.DriverBindingHandle,
+                &Pl2303DriverBinding.DriverBindingHandle,
                 &gEfiDriverBindingProtocolGuid,
-                &gPl2303DriverBinding,
+                &Pl2303DriverBinding,
+                &gEfiComponentNameProtocolGuid,
+                &Pl2303ComponentName,
+                &gEfiComponentName2ProtocolGuid,
+                &Pl2303ComponentName2,
                 NULL
                 );
 }

@@ -16,6 +16,8 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
+#include <Library/PrintLib.h>
+#include <Library/UefiLib.h>
 #include <Protocol/DriverBinding.h>
 #include <Protocol/UsbIo.h>
 #include <Protocol/SerialIo.h>
@@ -144,6 +146,7 @@ typedef struct {
 
   PL2303_TYPE               Type;
   UINTN                     Quirks;
+  CHAR16                   *Name;
 
   /* Modem-control output lines (DTR / RTS) */
   UINT8                     LineControl;

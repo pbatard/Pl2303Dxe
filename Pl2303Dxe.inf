@@ -33,6 +33,7 @@
   BaseLib
   BaseMemoryLib
   DebugLib
+  UefiLib
 
 [Protocols]
   gEfiDriverBindingProtocolGuid   ## PRODUCES
