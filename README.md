@@ -1,3 +1,8 @@
+[![Build Status](https://img.shields.io/github/actions/workflow/status/pbatard/Pl2303Dxe/Linux.yml?style=flat-square&label=Linux/EDK2%20Build)](https://github.com/pbatard/Pl2303Dxe/actions/Pl2303Dxe/Linux.yml)
+[![Release](https://img.shields.io/github/release/pbatard/Pl2303Dxe.svg?style=flat-square&label=Release)](https://github.com/pbatard/Pl2303Dxe/releases)
+[![Licence](https://img.shields.io/badge/license-GPLv2-blue.svg?style=flat-square&label=License)](https://www.gnu.org/licenses/gpl-2.0)
+[![Downloads](https://img.shields.io/github/downloads/pbatard/Pl2303Dxe/total.svg?label=Downloads&style=flat-square)](https://github.com/pbatard/Pl2303Dxe/releases)
+
 Pl2303Dxe - UEFI driver for PL2303 devices + SerialTest Application
 ===============================
 

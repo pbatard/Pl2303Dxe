@@ -15,7 +15,6 @@ on:
       - '**.md'
 
 env:
-  BUILD_TYPE: RELEASE
   COMPILER: GCC
   GCC_ARM_PREFIX: arm-linux-gnueabi-
   GCC_AARCH64_PREFIX: aarch64-linux-gnu-
@@ -80,15 +79,52 @@ jobs:
         export WORKSPACE=$PWD
         export PACKAGES_PATH=$WORKSPACE:$WORKSPACE/edk2
         source edk2/edksetup.sh
-        build -a ${{ matrix.TARGET_ARCH }} -b ${{ env.BUILD_TYPE }} -t ${{ env.COMPILER }} -p Pl2303Dxe.dsc -m Pl2303Dxe.inf
-        build -a ${{ matrix.TARGET_ARCH }} -b ${{ env.BUILD_TYPE }} -t ${{ env.COMPILER }} -p Pl2303Dxe.dsc -m SerialTest.inf
-        mv Build/${{ env.BUILD_TYPE }}_${{ env.COMPILER }}/${{ matrix.TARGET_ARCH }}/*.efi .
+        build -a ${{ matrix.TARGET_ARCH }} -b ${{ matrix.BUILD_TYPE }} -t ${{ env.COMPILER }} -p Pl2303Dxe.dsc -m Pl2303Dxe.inf
+        build -a ${{ matrix.TARGET_ARCH }} -b ${{ matrix.BUILD_TYPE }} -t ${{ env.COMPILER }} -p Pl2303Dxe.dsc -m SerialTest.inf
+        mv Build/${{ matrix.BUILD_TYPE }}_${{ env.COMPILER }}/${{ matrix.TARGET_ARCH }}/*.efi .
+
+    - name: Set Artifact name
+      run: |
+        if [ "${{ matrix.BUILD_TYPE }}" == "DEBUG" ] ; then
+            name="${{ matrix.TARGET_TYPE }} (DEBUG)"
+        else
+            name="${{ matrix.TARGET_TYPE }}"
+        fi
+        echo "ARTIFACT_NAME=$name" >> $GITHUB_ENV
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v7
       with:
-        name: ${{ matrix.TARGET_TYPE }}_${{ matrix.BUILD_TYPE }}
+        name: ${{ env.ARTIFACT_NAME }}
         path: ./*.efi
 
     - name: Display SHA-256
       run: sha256sum ./*.efi
+
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Set version
+      id: set_version
+      run: echo "version=$(git describe --tags)" >> $GITHUB_OUTPUT
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v8
+      with:
+        skip-decompress: true
+
+    - name: Create release
+      uses: softprops/action-gh-release@v3
+      with:
+        token: ${{secrets.GITHUB_TOKEN}}
+        name: Pl2303Dxe ${{ steps.set_version.outputs.version }}
+        files: ./*/*.zip
