@@ -1742,12 +1742,12 @@ Pl2303DriverBindingStart (
 
   /* Set default mode values */
   Dev->Mode.ControlMask      = 0;
-  Dev->Mode.Timeout          = 1000000;  /* 1 second in microseconds */
-  Dev->Mode.BaudRate         = 115200;
-  Dev->Mode.ReceiveFifoDepth = 16;
-  Dev->Mode.DataBits         = 8;
-  Dev->Mode.Parity           = NoParity;
-  Dev->Mode.StopBits         = OneStopBit;
+  Dev->Mode.Timeout          = PL2303_TIMEOUT;
+  Dev->Mode.BaudRate         = PcdGet64 (PcdUartDefaultBaudRate);
+  Dev->Mode.ReceiveFifoDepth = PL2303_DEFAULT_FIFO_DEPTH;
+  Dev->Mode.DataBits         = PcdGet8 (PcdUartDefaultDataBits);
+  Dev->Mode.Parity           = PcdGet8 (PcdUartDefaultParity);
+  Dev->Mode.StopBits         = PcdGet8 (PcdUartDefaultStopBits);
 
   /* Run power-on initialisation */
   Status = Pl2303Startup (Dev);

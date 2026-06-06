@@ -39,3 +39,9 @@
   gEfiDriverBindingProtocolGuid   ## PRODUCES
   gEfiSerialIoProtocolGuid        ## PRODUCES
   gEfiUsbIoProtocolGuid           ## CONSUMES
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate|115200    ## CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultDataBits|8         ## CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultParity|0           ## CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultStopBits|1         ## CONSUMES

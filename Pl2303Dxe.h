@@ -91,7 +91,13 @@
 #define PL2303_HXN_FLOWCTRL_MASK         0x1c
 #define PL2303_HXN_FLOWCTRL_NONE         0x1c
 #define PL2303_HXN_FLOWCTRL_RTS_CTS      0x18
-#define PL2303_HXN_FLOWCTRL_XON_XOFF    0x0c
+#define PL2303_HXN_FLOWCTRL_XON_XOFF     0x0c
+
+/* -----------------------------------------------------------------------
+ * Polling timeout (ms) and FIFO depth
+ * ----------------------------------------------------------------------- */
+#define PL2303_TIMEOUT                   32
+#define PL2303_DEFAULT_FIFO_DEPTH        16
 
 /* -----------------------------------------------------------------------
  * Chip-type enumeration
