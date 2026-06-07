@@ -20,8 +20,10 @@
   ENTRY_POINT                    = Pl2303DxeEntryPoint
 
 [Sources]
+  Pl2303Defs.h
   Pl2303Dxe.h
   Pl2303Dxe.c
+  Pl2303Internal.c
 
 [Packages]
   MdePkg/MdePkg.dec

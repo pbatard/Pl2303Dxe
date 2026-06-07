@@ -142,6 +142,8 @@ typedef struct {
 
 #define PL2303_PRIVATE_DATA_SIGNATURE  SIGNATURE_32 ('P', 'L', '2', '3')
 
+extern CONST PL2303_TYPE_DATA Pl2303TypeData[TYPE_COUNT];
+
 typedef struct {
   UINT32                    Signature;
 
@@ -177,6 +179,103 @@ typedef struct {
 
 #define PL2303_FROM_SERIAL_IO(a) \
   CR ((a), PL2303_PRIVATE_DATA, SerialIo, PL2303_PRIVATE_DATA_SIGNATURE)
+
+/* -----------------------------------------------------------------------
+ * Internal function prototypes
+ * ----------------------------------------------------------------------- */
+
+BOOLEAN
+Pl2303IsDeviceSupported (
+  IN  EFI_USB_IO_PROTOCOL  *UsbIo,
+  OUT UINTN                *Quirks
+  );
+
+EFI_STATUS
+Pl2303VendorRead (
+  IN  EFI_USB_IO_PROTOCOL  *UsbIo,
+  IN  BOOLEAN               IsHxn,
+  IN  UINT16                Value,
+  OUT UINT8                *Buf
+  );
+
+EFI_STATUS
+Pl2303VendorWrite (
+  IN EFI_USB_IO_PROTOCOL  *UsbIo,
+  IN BOOLEAN               IsHxn,
+  IN UINT16                Value,
+  IN UINT16                Index
+  );
+
+EFI_STATUS
+Pl2303UpdateReg (
+  IN PL2303_PRIVATE_DATA  *Dev,
+  IN UINT8                 Reg,
+  IN UINT8                 Mask,
+  IN UINT8                 Val
+  );
+
+INT32
+Pl2303DetectType (
+  IN EFI_USB_IO_PROTOCOL  *UsbIo
+  );
+
+BOOLEAN
+Pl2303IsHxdClone (
+  IN EFI_USB_IO_PROTOCOL  *UsbIo
+  );
+
+EFI_STATUS
+Pl2303DiscoverEndpoints (
+  IN OUT PL2303_PRIVATE_DATA  *Dev
+  );
+
+EFI_STATUS
+Pl2303Startup (
+  IN PL2303_PRIVATE_DATA  *Dev
+  );
+
+EFI_STATUS
+Pl2303SetControlLines (
+  IN PL2303_PRIVATE_DATA  *Dev
+  );
+
+EFI_STATUS
+Pl2303GetLineRequest (
+  IN  PL2303_PRIVATE_DATA  *Dev,
+  OUT UINT8                 Buf[7]
+  );
+
+EFI_STATUS
+Pl2303SetLineRequest (
+  IN PL2303_PRIVATE_DATA  *Dev,
+  IN UINT8                 Buf[7]
+  );
+
+UINT32
+Pl2303EncodeBaudRate (
+  IN  PL2303_PRIVATE_DATA  *Dev,
+  IN  UINT32                Baud,
+  OUT UINT8                 Buf[4]
+  );
+
+UINTN
+RxAvail (
+  IN CONST PL2303_PRIVATE_DATA  *Dev
+  );
+
+VOID
+RxEnqueue (
+  IN OUT PL2303_PRIVATE_DATA  *Dev,
+  IN     CONST UINT8          *Src,
+  IN     UINTN                 Len
+  );
+
+UINTN
+RxDequeue (
+  IN OUT PL2303_PRIVATE_DATA  *Dev,
+  OUT    UINT8                *Dst,
+  IN     UINTN                 Len
+  );
 
 /* -----------------------------------------------------------------------
  * EFI_SERIAL_IO_PROTOCOL function prototypes
