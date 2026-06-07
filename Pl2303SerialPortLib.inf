@@ -1,0 +1,38 @@
+#/** @file
+#
+#  Component description file for PL2303SerialPortLib module
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Pl2303SerialPortLib
+  FILE_GUID                      = A509B8FB-6683-4D3E-BD47-93CF866D1AE8
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = SerialPortLib|DXE_DRIVER UEFI_DRIVER DXE_RUNTIME_DRIVER UEFI_APPLICATION
+
+[LibraryClasses]
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+
+[Sources.common]
+  Pl2303Defs.h
+  Pl2303Dxe.h
+  Pl2303SerialPortLib.c
+  Pl2303Internal.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[Protocols]
+  gEfiUsbIoProtocolGuid           ## CONSUMES
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate|115200    ## CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultDataBits|8         ## CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultParity|0           ## CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultStopBits|1         ## CONSUMES

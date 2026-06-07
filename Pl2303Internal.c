@@ -11,6 +11,12 @@
 
 #include "Pl2303Dxe.h"
 
+#if defined(ENABLE_DEBUG)
+  #define PrintError Print
+#else
+  #define PrintError(...)
+#endif
+
 /* =========================================================================
  * Per-type capability table
  * ========================================================================= */
@@ -129,18 +135,18 @@ Pl2303IsDeviceSupported (
   OUT UINTN                *Quirks
   )
 {
-  EFI_USB_DEVICE_DESCRIPTOR  DevDesc;
+  EFI_USB_DEVICE_DESCRIPTOR  Desc;
   EFI_STATUS                 Status;
   UINTN                      i;
 
-  Status = UsbIo->UsbGetDeviceDescriptor (UsbIo, &DevDesc);
+  Status = UsbIo->UsbGetDeviceDescriptor (UsbIo, &Desc);
   if (EFI_ERROR (Status)) {
     return FALSE;
   }
 
   for (i = 0; mPl2303DeviceList[i].VendorId != 0; i++) {
-    if (mPl2303DeviceList[i].VendorId  == DevDesc.IdVendor  &&
-        mPl2303DeviceList[i].ProductId == DevDesc.IdProduct) {
+    if (mPl2303DeviceList[i].VendorId  == Desc.IdVendor  &&
+        mPl2303DeviceList[i].ProductId == Desc.IdProduct) {
       *Quirks = mPl2303DeviceList[i].Quirks;
       return TRUE;
     }
@@ -191,9 +197,8 @@ Pl2303VendorRead (
                     &UsbStatus
                     );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
-    DEBUG ((DEBUG_ERROR,
-            "Pl2303: VendorRead [%04x] failed: %r (USB status 0x%x)\n",
-            Value, Status, UsbStatus));
+    PrintError (L"Pl2303: VendorRead [%04x] failed: %r (USB status 0x%x)\n",
+                  Value, Status, UsbStatus);
     return EFI_DEVICE_ERROR;
   }
   return EFI_SUCCESS;
@@ -239,9 +244,8 @@ Pl2303VendorWrite (
                     &UsbStatus
                     );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
-    DEBUG ((DEBUG_ERROR,
-            "Pl2303: VendorWrite [%04x]=%04x failed: %r (USB status 0x%x)\n",
-            Value, Index, Status, UsbStatus));
+    PrintError (L"Pl2303: VendorWrite [%04x]=%04x failed: %r (USB status 0x%x)\n",
+                  Value, Index, Status, UsbStatus);
     return EFI_DEVICE_ERROR;
   }
   return EFI_SUCCESS;
@@ -411,8 +415,8 @@ Pl2303DetectType (
     break;
   }
 
-  DEBUG ((DEBUG_WARN, "PL2303: Unknown device type (bcdUSB=%04x bcdDevice=%04x)\n",
-          BcdUsb, BcdDevice));
+  PrintError (L"PL2303: Unknown device type (bcdUSB=%04x bcdDevice=%04x)\n",
+                BcdUsb, BcdDevice);
   return -1;
 }
 
@@ -509,7 +513,7 @@ Pl2303DiscoverEndpoints (
   }
 
   if ((Dev->BulkInAddr == 0) || (Dev->BulkOutAddr == 0)) {
-    DEBUG ((DEBUG_ERROR, "PL2303: Bulk endpoints not found\n"));
+    PrintError (L"PL2303: Bulk endpoints not found\n");
     return EFI_NOT_FOUND;
   }
 
@@ -593,8 +597,6 @@ Pl2303SetControlLines (
   UINT32                  UsbStatus;
   EFI_STATUS              Status;
 
-  DEBUG ((DEBUG_VERBOSE, "PL2303: SetControlLines 0x%02x\n", Dev->LineControl));
-
   Req.RequestType = SET_CONTROL_REQUEST_TYPE;
   Req.Request     = SET_CONTROL_REQUEST;
   Req.Value       = Dev->LineControl;
@@ -611,6 +613,7 @@ Pl2303SetControlLines (
                          &UsbStatus
                          );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
+    PrintError (L"PL2303: SetControlLines 0x%02x failed: %r\n", Dev->LineControl, Status);
     return EFI_DEVICE_ERROR;
   }
   return EFI_SUCCESS;
@@ -659,7 +662,7 @@ Pl2303GetLineRequest (
                          &UsbStatus
                          );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
-    DEBUG ((DEBUG_ERROR, "PL2303: GetLineRequest failed: %r\n", Status));
+    PrintError (L"PL2303: GetLineRequest failed: %r\n", Status);
     return EFI_DEVICE_ERROR;
   }
   return EFI_SUCCESS;
@@ -700,7 +703,7 @@ Pl2303SetLineRequest (
                          &UsbStatus
                          );
   if (EFI_ERROR (Status) || (UsbStatus != 0)) {
-    DEBUG ((DEBUG_ERROR, "PL2303: SetLineRequest failed: %r\n", Status));
+    PrintError (L"PL2303: SetLineRequest failed: %r\n", Status);
     return EFI_DEVICE_ERROR;
   }
   CopyMem (Dev->LineSettings, Buf, 7);
@@ -965,4 +968,206 @@ RxDequeue (
     Dev->RxHead = (Dev->RxHead + 1) % PL2303_MAX_RX_BUFFER;
   }
   return Len;
+}
+
+/**
+  Set serial-line parameters: baud rate, FIFO depth, timeout, parity,
+  data bits and stop bits.
+
+  @param[in]  Dev              Device instance.
+  @param[in]  BaudRate         Requested baud rate (0 = keep current).
+  @param[in]  ReceiveFifoDepth Receive FIFO depth (0 = keep current).
+  @param[in]  Timeout          Read/write timeout in microseconds (0 = keep).
+  @param[in]  Parity           Parity type.
+  @param[in]  DataBits         Data bits per character (5–8; 0 = keep current).
+  @param[in]  StopBits         Stop-bit count.
+
+  @retval EFI_SUCCESS           Parameters accepted and programmed.
+  @retval EFI_INVALID_PARAMETER An unsupported combination was requested.
+  @retval EFI_DEVICE_ERROR      USB transfer failed.
+**/
+EFI_STATUS
+Pl2303SetAttributes (
+  IN PL2303_PRIVATE_DATA     *Dev,
+  IN UINT64                   BaudRate,
+  IN UINT32                   ReceiveFifoDepth,
+  IN UINT32                   Timeout,
+  IN EFI_PARITY_TYPE          Parity,
+  IN UINT8                    DataBits,
+  IN EFI_STOP_BITS_TYPE       StopBits
+  )
+{
+  UINT8                 Buf[7];
+  UINT32                ActualBaud;
+  EFI_STATUS            Status;
+
+  /* Apply defaults for zero / default values */
+  if (BaudRate         == 0)              { BaudRate         = Dev->Mode.BaudRate;         }
+  if (ReceiveFifoDepth == 0)              { ReceiveFifoDepth = Dev->Mode.ReceiveFifoDepth;  }
+  if (Timeout          == 0)              { Timeout          = Dev->Mode.Timeout;           }
+  if (DataBits         == 0)              { DataBits         = (UINT8)Dev->Mode.DataBits;   }
+  if (Parity           == DefaultParity)  { Parity           = Dev->Mode.Parity;            }
+  if (StopBits         == DefaultStopBits){ StopBits         = Dev->Mode.StopBits;          }
+
+  /* Validate */
+  if ((DataBits < 5) || (DataBits > 8)) {
+    return EFI_INVALID_PARAMETER;
+  }
+  if ((StopBits == OneFiveStopBits) && (DataBits != 5)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  /* Read the current line-coding from the device as a starting point */
+  Status = Pl2303GetLineRequest (Dev, Buf);
+  if (EFI_ERROR (Status)) {
+    return EFI_DEVICE_ERROR;
+  }
+
+  /* --- Baud rate (bytes 0-3) --- */
+  ActualBaud = Pl2303EncodeBaudRate (Dev, (UINT32)BaudRate, &Buf[0]);
+
+  /* --- Stop bits (byte 4) ---
+   *   0 = 1 stop bit, 1 = 1.5 stop bits (5 data only), 2 = 2 stop bits
+   */
+  switch (StopBits) {
+  case OneStopBit:
+    Buf[4] = 0;
+    break;
+  case OneFiveStopBits:
+    Buf[4] = 1;
+    break;
+  case TwoStopBits:
+    Buf[4] = 2;
+    break;
+  default:
+    Buf[4] = 0;
+    break;
+  }
+
+  /* --- Parity (byte 5) ---
+   *   0=none, 1=odd, 2=even, 3=mark, 4=space
+   */
+  switch (Parity) {
+  case NoParity:
+    Buf[5] = 0;
+    break;
+  case OddParity:
+    Buf[5] = 1;
+    break;
+  case EvenParity:
+    Buf[5] = 2;
+    break;
+  case MarkParity:
+    Buf[5] = 3;
+    break;
+  case SpaceParity:
+    Buf[5] = 4;
+    break;
+  default:
+    Buf[5] = 0;
+    break;
+  }
+
+  /* --- Data bits (byte 6) --- */
+  Buf[6] = DataBits;
+
+  /* Only send to device if anything changed (avoids dropping bytes) */
+  if (CompareMem (Buf, Dev->LineSettings, 7) != 0) {
+    Status = Pl2303SetLineRequest (Dev, Buf);
+    if (EFI_ERROR (Status)) {
+      return EFI_DEVICE_ERROR;
+    }
+  }
+
+  /* Apply hardware flow-control setting */
+  if (Dev->HwFlowControl) {
+    if (Dev->Quirks & PL2303_QUIRK_LEGACY) {
+      Pl2303UpdateReg (Dev, 0, PL2303_FLOWCTRL_MASK, 0x40);
+    } else if (Dev->Type == TYPE_HXN) {
+      Pl2303UpdateReg (Dev, PL2303_HXN_FLOWCTRL_REG,
+                       PL2303_HXN_FLOWCTRL_MASK, PL2303_HXN_FLOWCTRL_RTS_CTS);
+    } else {
+      Pl2303UpdateReg (Dev, 0, PL2303_FLOWCTRL_MASK, 0x60);
+    }
+  } else {
+    if (Dev->Type == TYPE_HXN) {
+      Pl2303UpdateReg (Dev, PL2303_HXN_FLOWCTRL_REG,
+                       PL2303_HXN_FLOWCTRL_MASK, PL2303_HXN_FLOWCTRL_NONE);
+    } else {
+      Pl2303UpdateReg (Dev, 0, PL2303_FLOWCTRL_MASK, 0);
+    }
+  }
+
+  /* Update mode record */
+  Dev->Mode.BaudRate         = ActualBaud;
+  Dev->Mode.ReceiveFifoDepth = ReceiveFifoDepth;
+  Dev->Mode.Timeout          = Timeout;
+  Dev->Mode.Parity           = Parity;
+  Dev->Mode.DataBits         = DataBits;
+  Dev->Mode.StopBits         = StopBits;
+
+  return EFI_SUCCESS;
+}
+
+/**
+  Transmit data over the serial interface.
+
+  @param[in]      Dev         Device instance.
+  @param[in,out]  BufferSize  On entry: bytes to send.  On exit: bytes sent.
+  @param[in]      Buffer      Data to transmit.
+
+  @retval EFI_SUCCESS       All bytes were sent.
+  @retval EFI_DEVICE_ERROR  A USB bulk-OUT transfer failed.
+  @retval EFI_TIMEOUT       Not all bytes could be sent within the timeout.
+**/
+EFI_STATUS
+Pl2303Write (
+  IN     PL2303_PRIVATE_DATA  *Dev,
+  IN OUT UINTN                *BufferSize,
+  IN     VOID                 *Buffer
+  )
+{
+  UINT8                *Ptr;
+  UINTN                 Remaining;
+  UINTN                 Chunk;
+  UINTN                 Sent;
+  UINT32                UsbStatus;
+  EFI_STATUS            Status;
+  UINTN                 TimeoutMs;
+
+  Ptr       = (UINT8 *)Buffer;
+  Remaining = *BufferSize;
+  Sent      = 0;
+
+  TimeoutMs = Dev->Mode.Timeout / 1000;
+  if (TimeoutMs == 0) {
+    TimeoutMs = 100;
+  }
+  if (TimeoutMs > 5000) {
+    TimeoutMs = 5000;
+  }
+
+  while (Remaining > 0) {
+    Chunk = (Remaining > PL2303_MAX_XFER_SIZE) ? PL2303_MAX_XFER_SIZE : Remaining;
+
+    Status = Dev->UsbIo->UsbBulkTransfer (
+                           Dev->UsbIo,
+                           Dev->BulkOutAddr,
+                           Ptr,
+                           &Chunk,
+                           (UINTN)TimeoutMs,
+                           &UsbStatus
+                           );
+    if (EFI_ERROR (Status)) {
+      *BufferSize = Sent;
+      return (Status == EFI_TIMEOUT) ? EFI_TIMEOUT : EFI_DEVICE_ERROR;
+    }
+
+    Ptr       += Chunk;
+    Sent      += Chunk;
+    Remaining -= Chunk;
+  }
+
+  *BufferSize = Sent;
+  return EFI_SUCCESS;
 }

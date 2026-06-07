@@ -277,6 +277,24 @@ RxDequeue (
   IN     UINTN                 Len
   );
 
+EFI_STATUS
+Pl2303SetAttributes (
+  IN PL2303_PRIVATE_DATA      *Dev,
+  IN UINT64                    BaudRate,
+  IN UINT32                    ReceiveFifoDepth,
+  IN UINT32                    Timeout,
+  IN EFI_PARITY_TYPE           Parity,
+  IN UINT8                     DataBits,
+  IN EFI_STOP_BITS_TYPE        StopBits
+  );
+
+EFI_STATUS
+Pl2303Write (
+  IN     PL2303_PRIVATE_DATA  *Dev,
+  IN OUT UINTN                *BufferSize,
+  IN     VOID                 *Buffer
+  );
+
 /* -----------------------------------------------------------------------
  * EFI_SERIAL_IO_PROTOCOL function prototypes
  * ----------------------------------------------------------------------- */
