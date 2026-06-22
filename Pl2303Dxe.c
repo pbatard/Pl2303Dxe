@@ -599,14 +599,14 @@ Pl2303DriverBindingStart (
     Size = 64 + ((ProductString != NULL) ? 2 * StrLen(ProductString) : 0);
     Dev->Name = AllocateZeroPool(Size);
     if (Dev->Name != NULL) {
-      UnicodeSPrint(Dev->Name, Size, L"PL2303%a %s (%04x:%04x)",
+      UnicodeSPrint (Dev->Name, Size, L"PL2303%a %s (%04x:%04x)",
         Pl2303TypeData[Dev->Type].TypeName,
         (ProductString != NULL) ? ProductString : L"",
         Desc.IdVendor,
         Desc.IdProduct
         );
     }
-    FreePool(ProductString);
+    ProperFreePool (ProductString);
   }
 
   DEBUG ((DEBUG_INFO, "PL2303: Detected type %a, quirks 0x%lx\n",
@@ -681,7 +681,7 @@ Pl2303DriverBindingStart (
   return EFI_SUCCESS;
 
 FreeDev:
-  FreePool (Dev);
+  ProperFreePool (Dev);
 CloseUsbIo:
   gBS->CloseProtocol (
          ControllerHandle,
@@ -752,8 +752,8 @@ Pl2303DriverBindingStop (
          ControllerHandle
          );
 
-  FreePool (Dev->Name);
-  FreePool (Dev);
+  ProperFreePool (Dev->Name);
+  ProperFreePool (Dev);
   return EFI_SUCCESS;
 }
 

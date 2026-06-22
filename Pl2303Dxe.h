@@ -27,6 +27,9 @@
  * (Pl2303Defs.h is part of the original Linux kernel source included in this repo). */
 #include "Pl2303Defs.h"
 
+/* Now who THE FUCK thought asserting for NULL in FreePool() was a GOOD IDEA?!?!?! */
+#define ProperFreePool(x) do { if ((x) != NULL) FreePool (x); } while (0)
+
 /* -----------------------------------------------------------------------
  * USB class-specific request types and requests (CDC / vendor)
  * ----------------------------------------------------------------------- */

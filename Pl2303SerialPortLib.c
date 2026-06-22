@@ -46,7 +46,7 @@ Pl2303LocateSerialIo (VOID)
                   &HandleBuffer
                   );
   if (EFI_ERROR (Status)) {
-    return;
+    goto Exit;
   }
 
   for (Index = 0; Index < HandleCount; Index++) {
@@ -131,8 +131,8 @@ Pl2303LocateSerialIo (VOID)
 
 Exit:
   if (EFI_ERROR(Status)) {
-    FreePool (Dev);
     mPermanentStatus = Status;
+    ProperFreePool (Dev);
   } else {
     mDev = Dev;
   }
@@ -184,14 +184,14 @@ SerialPortWrite (
   IN UINTN  NumberOfBytes
   )
 {
-  EFI_STATUS  Status;
-
   Pl2303LocateSerialIo ();
   if (mDev == NULL) {
     return 0;
   }
 
-  Status = Pl2303Write (mDev, &NumberOfBytes, Buffer);
+  ASSERT (Buffer != NULL);
+
+  Pl2303Write (mDev, &NumberOfBytes, Buffer);
   return NumberOfBytes;
 }
 
@@ -218,6 +218,8 @@ SerialPortRead (
   IN  UINTN  NumberOfBytes
   )
 {
+  ASSERT (Buffer != NULL);
+
   return 0;
 }
 
