@@ -760,16 +760,16 @@ DisplayBaudRateMenu (
   )
 {
   Print (L"Please select the baudrate setting\n");
-  Print (L"0. 300\n");
-  Print (L"1. 600\n");
-  Print (L"2. 1200\n");
-  Print (L"3. 2400\n");
-  Print (L"4. 4800\n");
-  Print (L"5. 9600\n");
-  Print (L"6. 19200\n");
-  Print (L"7. 38400\n");
-  Print (L"8. 57600\n");
-  Print (L"9. 115200\n");
+  Print (L"0.    9600\n");
+  Print (L"1.   19200\n");
+  Print (L"2.   57600\n");
+  Print (L"3.  115200\n");
+  Print (L"4.  230400\n");
+  Print (L"5.  460800\n");
+  Print (L"6.  921600\n");
+  Print (L"7. 1228800\n");
+  Print (L"8. 3000000\n");
+  Print (L"9. 6000000\n");
 }
 
 /**
@@ -952,34 +952,34 @@ SetAttributesTest (
             break;
           }
           if (Keystroke.UnicodeChar == 0x30) {
-            BaudRate = 300;
-          }
-          if (Keystroke.UnicodeChar == 0x31) {
-            BaudRate = 600;
-          }
-          if (Keystroke.UnicodeChar == 0x32) {
-            BaudRate = 1200;
-          }
-          if (Keystroke.UnicodeChar == 0x33) {
-            BaudRate = 2400;
-          }
-          if (Keystroke.UnicodeChar == 0x34) {
-            BaudRate = 4800;
-          }
-          if (Keystroke.UnicodeChar == 0x35) {
             BaudRate = 9600;
           }
-          if (Keystroke.UnicodeChar == 0x36) {
+          if (Keystroke.UnicodeChar == 0x31) {
             BaudRate = 19200;
           }
-          if (Keystroke.UnicodeChar == 0x37) {
-            BaudRate = 38400;
-          }
-          if (Keystroke.UnicodeChar == 0x38) {
+          if (Keystroke.UnicodeChar == 0x32) {
             BaudRate = 57600;
           }
-          if (Keystroke.UnicodeChar == 0x39) {
+          if (Keystroke.UnicodeChar == 0x33) {
             BaudRate = 115200;
+          }
+          if (Keystroke.UnicodeChar == 0x34) {
+            BaudRate = 230400;
+          }
+          if (Keystroke.UnicodeChar == 0x35) {
+            BaudRate = 460800;
+          }
+          if (Keystroke.UnicodeChar == 0x36) {
+            BaudRate = 921600;
+          }
+          if (Keystroke.UnicodeChar == 0x37) {
+            BaudRate = 1228800;
+          }
+          if (Keystroke.UnicodeChar == 0x38) {
+            BaudRate = 3000000;
+          }
+          if (Keystroke.UnicodeChar == 0x39) {
+            BaudRate = 6000000;
           }
         }
         Keystroke.ScanCode    = 0x0;
